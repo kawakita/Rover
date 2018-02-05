@@ -9,13 +9,27 @@ def decision_step(Rover):
     # Here you're all set up with some basic functionality but you'll need to
     # improve on this decision tree to do a good job of navigating autonomously!
 
-    # Example:
-    # Check if we have vision data to make decisions with
-    if Rover.nav_angles is not None:
-        print(Rover.mode)
+    if Rover.rock_angles is not None:
+        Rover.mode = 'forward'
+        print(Rover.mode, 'rock collecting')
+
+        Rover.steer = np.clip(np.mean(Rover.rock_angles * 180/np.pi), -15, 15)
+        if Rover.near_sample:
+            Rover.throttle = 0
+            Rover.brake = Rover.brake_set
+        else:
+            if Rover.vel < 1:
+                Rover.brake = 0
+                Rover.throttle = 0.1
+            else:
+                Rover.throttle = 0
+                Rover.brake = 1
+    elif Rover.nav_angles is not None:
         mean_angle = np.mean(Rover.nav_angles * 180/np.pi)
+
         # Check for Rover.mode status
         if Rover.mode == 'forward':
+            print(Rover.mode, 'going forward')
             # Check the extent of navigable terrain
             if len(Rover.nav_angles) >= Rover.stop_forward:
                 # If rover seems stuck
@@ -44,6 +58,7 @@ def decision_step(Rover):
 
         # If we're already in "stop" mode then make different decisions
         elif Rover.mode == 'stop':
+            print(Rover.mode)
             # If we're in stop mode but still moving keep braking
             if Rover.vel > 0.2:
                 Rover.throttle = 0
@@ -69,6 +84,7 @@ def decision_step(Rover):
                     Rover.mode = 'forward'
         # If we're in "stuck" mode, make different decisions
         elif Rover.mode == 'stuck':
+            print(Rover.mode)
             Rover.brake = 0
             Rover.throttle = 0
             Rover.steer = -15
@@ -77,12 +93,13 @@ def decision_step(Rover):
     # even if no modifications have been made to the code
     else:
         Rover.throttle = Rover.throttle_set
-        Rover.steer = 0
+        Rover.steer = -15
         Rover.brake = 0
 
     # If in a state where want to pickup a rock send pickup command
     if Rover.near_sample and Rover.vel == 0 and not Rover.picking_up:
         Rover.send_pickup = True
+        Rover.mode = 'stop'
 
     return Rover
 
